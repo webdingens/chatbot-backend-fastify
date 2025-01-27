@@ -1,0 +1,7 @@
+.env
+dist
+data
+storage
+node_modules
+src/*.js
+endpoints.http

@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model llamaindex_embedding {
+  id       String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  // external_id String?                @db.VarChar
+  // collection  String?                @db.VarChar
+  // document    String?
+  metadata Json?  @default("{}")
+  // embeddings  Unsupported("vector")?
+
+  // @@index([collection], map: "idx_llamaindex_embedding_collection")
+  // @@index([external_id], map: "idx_llamaindex_embedding_external_id")
+}
