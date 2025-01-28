@@ -3,10 +3,12 @@
 import z from "zod";
 import fastify from "../fastify.js";
 import { queryPGVectorStoreReducedData } from "../utils/db.js";
-import { MessageType, OpenAI } from "llamaindex";
+import { OpenAI } from "llamaindex";
+import { MessagesList } from "../utils/MessagesList.js";
 
 const QuerySchema = z.object({
   query: z.string(),
+  context: z.string().optional(),
 });
 
 const llm = new OpenAI({
@@ -19,7 +21,7 @@ fastify.post("/chat", async function handler(request, reply) {
 
   if (!body.success) return reply.status(400).send(body.error);
 
-  const { query } = body.data;
+  const { query, context } = body.data;
 
   const mappedData = (await queryPGVectorStoreReducedData(query)) ?? [];
 
@@ -32,33 +34,10 @@ fastify.post("/chat", async function handler(request, reply) {
     });
   }
 
-  const embedData = filteredData.map((e) => ({
-    content: `Titel: ${e.title}\nURL: ${e.url.split("/").join(" ")}\nContent: ${
-      e.text
-    }`,
-    role: "system",
-  })) as {
-    content: string;
-    role: MessageType;
-  }[];
+  const messageList = constructMessagesList(query, context, filteredData);
 
   const response = await llm.chat({
-    messages: [
-      {
-        content:
-          "Du bist angestellt bei einem Einkaufszentrum und hilfst Personen die etwas über das Einkaufszentrum erfahren wollen.",
-        role: "system",
-      },
-      {
-        content: `Beantworte folgende Fragen mit diesen Informationen:`,
-        role: "system",
-      },
-      ...embedData,
-      {
-        content: query,
-        role: "user",
-      },
-    ],
+    messages: messageList.messages,
   });
 
   return reply.status(200).send({
@@ -67,3 +46,27 @@ fastify.post("/chat", async function handler(request, reply) {
     embed: filteredData,
   });
 });
+
+function constructMessagesList(
+  query: string,
+  context?: string,
+  embeddings?: Awaited<ReturnType<typeof queryPGVectorStoreReducedData>>
+) {
+  const messageList = new MessagesList();
+
+  // add the context if provided by the request (chatbot)
+  if (context) messageList.addMessage(context, "system");
+
+  // add embeddings as context
+  messageList.addMessage(
+    `Answer all questions with the following information:`,
+    "system"
+  );
+  embeddings?.forEach((e) =>
+    messageList.addMessage(`Title: ${e.title}\nContent: ${e.text}`, "system")
+  );
+
+  // finally add the user prompt
+  messageList.addMessage(query, "user");
+  return messageList;
+}
