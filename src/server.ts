@@ -1,10 +1,11 @@
+import { FastifyListenOptions } from "fastify";
 import "./env.js";
 import fastify from "./fastify.js";
 import "./plugins/index.js";
 import "./routes/index.js";
 
 try {
-  const serverConfig = {
+  const serverConfig: FastifyListenOptions = {
     port: process.env.PORT ? Number(process.env.PORT) : 3000,
     host: process.env.HOST ?? "127.0.0.1",
   };
