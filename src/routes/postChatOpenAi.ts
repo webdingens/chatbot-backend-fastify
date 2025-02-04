@@ -60,10 +60,10 @@ function constructMessagesList(
   // add embeddings as context
   messageList.addMessage(
     `Answer all questions with the following information:`,
-    "system"
+    "user"
   );
   embeddings?.forEach((e) =>
-    messageList.addMessage(`Title: ${e.title}\nContent: ${e.text}`, "system")
+    messageList.addMessage(`Title: ${e.title}\nContent: ${e.text}`, "user")
   );
 
   // finally add the user prompt
